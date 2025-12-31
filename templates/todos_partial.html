@@ -1,0 +1,23 @@
+<h2>新しいTodoを追加</h2>
+<form hx-post="/todos" hx-target="#todo-list" hx-swap="afterbegin" hx-on::after-request="this.reset()">
+    <input
+        type="text"
+        name="title"
+        placeholder="やることを入力..."
+        required
+        autofocus
+    >
+    <button type="submit">追加</button>
+</form>
+<div id="error-message"></div>
+
+<h2>Todoリスト</h2>
+<div id="todo-list">
+    {% for todo in todos %}
+        {% include "todo_item.html" %}
+    {% else %}
+        <p style="color: #95a5a6; text-align: center;">まだTodoがありません</p>
+    {% endfor %}
+</div>
+
+<p><a href="/">← トップページに戻る</a></p>

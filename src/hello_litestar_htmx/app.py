@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Annotated
 
-from litestar import Litestar, delete, get, post
+from litestar import Litestar, Request, delete, get, post
 from litestar.contrib.jinja import JinjaTemplateEngine
 from litestar.enums import RequestEncodingType
 from litestar.params import Body
@@ -41,11 +41,28 @@ async def hello(name: str = "World") -> Template:
 
 
 @get("/todos")
-async def get_todos() -> Template:
-    """Todoリストページ"""
+async def get_todos(request: Request) -> Template:
+    """Todoリストページ
+
+    通常アクセス: フルページ (todos.html)
+    HTMXアクセス: 部分HTML (todos_partial.html)
+    """
+    context = {"todos": todos}
+
+    # HTMXリクエストかどうかを HX-Request ヘッダーで判定
+    is_htmx = request.headers.get("HX-Request") == "true"
+
+    if is_htmx:
+        # HTMXリクエストの場合は部分HTMLだけを返す
+        return Template(
+            template_name="todos_partial.html",
+            context=context
+        )
+
+    # 通常アクセスの場合はフルページを返す
     return Template(
         template_name="todos.html",
-        context={"todos": todos}
+        context=context
     )
 
 

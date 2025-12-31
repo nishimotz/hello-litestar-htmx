@@ -8,8 +8,16 @@
 <div class="container">
     <h2>📚 サンプル一覧</h2>
     <ul>
-        <li><a href="/todos">📝 Todoリスト - CRUD操作を学ぶ</a></li>
+        <li><a href="/todos">📝 Todoリスト（通常リンク）- フルページ遷移</a></li>
+        <li>
+            <button hx-get="/todos" hx-target="#htmx-demo" hx-swap="innerHTML">
+                📝 Todoリスト（HTMXリンク）- 部分HTML読み込み
+            </button>
+        </li>
     </ul>
+    <div id="htmx-demo" class="container" style="min-height: 100px; margin-top: 20px;">
+        <!-- ここに部分HTMLが読み込まれます -->
+    </div>
 </div>
 
 <div class="container">
