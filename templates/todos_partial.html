@@ -1,5 +1,6 @@
 <h2>新しいTodoを追加</h2>
-<form hx-post="/todos" hx-target="#todo-list" hx-swap="afterbegin" hx-on::after-request="this.reset()">
+<form hx-post="/todos" hx-target="#todo-list" hx-swap="afterbegin" hx-on::after-request="this.reset()"{% if csrf_token %} hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'{% endif %}>
+    {% if csrf_token %}<input type="hidden" name="_csrf_token" value="{{ csrf_token }}">{% endif %}
     <input
         type="text"
         name="title"

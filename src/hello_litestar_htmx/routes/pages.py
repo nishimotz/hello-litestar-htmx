@@ -1,21 +1,25 @@
 """Routes for static pages (index, hello, etc.)."""
 
-from litestar import Router, get
+from litestar import Request, Router, get
 from litestar.response import Template
 
+from hello_litestar_htmx.csrf import get_csrf_token
 
 @get("/")
-async def index() -> Template:
+async def index(request: Request) -> Template:
     """トップページ"""
-    return Template(template_name="index.html")
+    return Template(
+        template_name="index.html",
+        context={"csrf_token": get_csrf_token(request)}
+    )
 
 
 @get("/hello")
-async def hello(name: str = "World") -> Template:
+async def hello(request: Request, name: str = "World") -> Template:
     """挨拶ページ - HTMXで動的に更新"""
     return Template(
         template_name="hello.html",
-        context={"name": name}
+        context={"name": name, "csrf_token": get_csrf_token(request)}
     )
 
 

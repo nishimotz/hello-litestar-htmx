@@ -10,6 +10,7 @@ from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 from pydantic import ValidationError
 
 from hello_litestar_htmx.models.todo import TodoCreate
+from hello_litestar_htmx.csrf import get_csrf_token
 from hello_litestar_htmx.services.todo import TodoService
 
 
@@ -28,7 +29,8 @@ async def get_todos_page(request: Request, todo_service: TodoService) -> Templat
         Template response with appropriate template based on request type.
     """
     todos = todo_service.get_all_todos()
-    context = {"todos": todos}
+    csrf_token = get_csrf_token(request)
+    context = {"todos": todos, "csrf_token": csrf_token}
 
     # HTMXリクエストかどうかを HX-Request ヘッダーで判定
     is_htmx = request.headers.get("HX-Request") == "true"
@@ -49,12 +51,14 @@ async def get_todos_page(request: Request, todo_service: TodoService) -> Templat
 
 @post("/todos")
 async def add_todo(
+    request: Request,
     data: Annotated[dict, Body(media_type=RequestEncodingType.URL_ENCODED)],
     todo_service: TodoService,
 ) -> Template:
     """Todo追加
 
     Args:
+        request: The HTTP request object.
         data: Form data containing the todo title.
         todo_service: Injected TodoService instance.
 
@@ -65,10 +69,10 @@ async def add_todo(
         # Pydantic validation will automatically strip and validate
         todo_data = TodoCreate(title=data.get("title", ""))
         todo = todo_service.create_todo(todo_data)
-
+        csrf_token = get_csrf_token(request)
         return Template(
             template_name="todo_item.html",
-            context={"todo": todo},
+            context={"todo": todo, "csrf_token": csrf_token},
             status_code=HTTP_201_CREATED,
         )
     except ValidationError as e:
@@ -79,13 +83,20 @@ async def add_todo(
             context={"error": error_msg},
             status_code=HTTP_200_OK,  # Validation error returns 200 with error message
         )
+    except Exception as e:
+        raise
 
 
 @post("/todos/{todo_id:int}/toggle")
-async def toggle_todo(todo_id: int, todo_service: TodoService) -> Template:
+async def toggle_todo(
+    request: Request,
+    todo_id: int,
+    todo_service: TodoService
+) -> Template:
     """Todo完了/未完了をトグル
 
     Args:
+        request: The HTTP request object.
         todo_id: The ID of the todo to toggle.
         todo_service: Injected TodoService instance.
 
@@ -93,10 +104,11 @@ async def toggle_todo(todo_id: int, todo_service: TodoService) -> Template:
         Template response with the updated todo item.
     """
     todo = todo_service.toggle_todo_completed(todo_id)
+    csrf_token = get_csrf_token(request)
 
     return Template(
         template_name="todo_item.html",
-        context={"todo": todo}
+        context={"todo": todo, "csrf_token": csrf_token}
     )
 
 

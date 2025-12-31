@@ -16,10 +16,12 @@ Litestar と HTMX を学ぶための学習プロジェクト
 
 詳細な学習記録は [docs/](docs/) ディレクトリに保存されています：
 
-- [01_setup.md](docs/01_setup.md) - プロジェクトセットアップ
-- [02_hello_world.md](docs/02_hello_world.md) - Hello World + HTMX基礎
-- [03_todo_crud.md](docs/03_todo_crud.md) - Todo CRUD機能の実装
-- [04_clean_architecture.md](docs/04_clean_architecture.md) - クリーンアーキテクチャ・型アノテーション・テスト
+- [docs/README.md](docs/README.md) - 目次
+- [docs/01_hello_world.md](docs/01_hello_world.md) - 最初のアプリケーション
+- [docs/02_todo_list.md](docs/02_todo_list.md) - TodoリストでCRUD操作を学ぶ
+- [docs/03_htmx_detection.md](docs/03_htmx_detection.md) - HTMXリクエスト検出 - 同じURLで異なるレスポンス
+- [docs/04_clean_architecture.md](docs/04_clean_architecture.md) - クリーンアーキテクチャー・型アノテーション・テスト
+- [docs/05_csrf.md](docs/05_csrf.md) - CSRF対策（Litestar × HTMX）
 
 ## 🚀 クイックスタート
 
@@ -50,6 +52,13 @@ uv pip install -e ".[dev]"
 ### サーバーを起動
 
 ```bash
+litestar run --reload
+```
+
+複数ワーカーやリロード環境でCSRFの整合性を保つため、`LITESTAR_CSRF_SECRET`（または `CSRF_SECRET`）を固定値で設定することを推奨します（未設定の場合は `.litestar/csrf-secret` に自動保存されます）。
+
+```bash
+export LITESTAR_CSRF_SECRET="change-me-to-a-long-random-string"
 litestar run --reload
 ```
 

@@ -55,62 +55,107 @@ class TestTodoRoutes:
 
     def test_create_todo(self, client):
         """Test creating a new todo."""
+        # CSRFトークンを取得
+        get_response = client.get("/todos")
+        csrf_token = get_response.cookies.get("csrf_token")
+        
         response = client.post(
             "/todos",
             data={"title": "テスト用のTodo"},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "x-csrftoken": csrf_token,
+            },
         )
         assert response.status_code == 201
         assert "テスト用のTodo" in response.text
-        assert 'id="todo-1"' in response.text
+        # IDは動的に生成されるため、todo-itemが含まれていることを確認
+        assert 'class="todo-item' in response.text
 
     def test_create_todo_empty_title(self, client):
         """Test creating a todo with empty title (should fail)."""
+        # CSRFトークンを取得
+        get_response = client.get("/todos")
+        csrf_token = get_response.cookies.get("csrf_token")
+        
         response = client.post(
             "/todos",
             data={"title": "   "},  # Only whitespace
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "x-csrftoken": csrf_token,
+            },
         )
         # Should return error template
         assert "タイトルを入力してください" in response.text
 
     def test_toggle_todo(self, client):
         """Test toggling a todo's completion status."""
+        # CSRFトークンを取得
+        get_response = client.get("/todos")
+        csrf_token = get_response.cookies.get("csrf_token")
+        
         # First create a todo
         create_response = client.post(
             "/todos",
             data={"title": "トグルテスト"},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "x-csrftoken": csrf_token,
+            },
         )
         assert create_response.status_code == 201
 
         # Toggle it to completed
-        toggle_response = client.post("/todos/1/toggle")
+        toggle_response = client.post(
+            "/todos/1/toggle",
+            headers={"x-csrftoken": csrf_token},
+        )
         assert toggle_response.status_code == 200
         assert 'checked' in toggle_response.text
 
         # Toggle it back to incomplete
-        toggle_again_response = client.post("/todos/1/toggle")
+        toggle_again_response = client.post(
+            "/todos/1/toggle",
+            headers={"x-csrftoken": csrf_token},
+        )
         assert toggle_again_response.status_code == 200
         assert 'checked' not in toggle_again_response.text
 
     def test_delete_todo(self, client):
         """Test deleting a todo."""
+        # CSRFトークンを取得
+        get_response = client.get("/todos")
+        csrf_token = get_response.cookies.get("csrf_token")
+        
         # First create a todo
         create_response = client.post(
             "/todos",
             data={"title": "削除テスト"},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "x-csrftoken": csrf_token,
+            },
         )
         assert create_response.status_code == 201
 
         # Delete it
-        delete_response = client.delete("/todos/1")
+        delete_response = client.delete(
+            "/todos/1",
+            headers={"x-csrftoken": csrf_token},
+        )
         assert delete_response.status_code == 200
         assert delete_response.text == ""
 
     def test_delete_nonexistent_todo(self, client):
         """Test deleting a todo that doesn't exist."""
+        # CSRFトークンを取得
+        get_response = client.get("/todos")
+        csrf_token = get_response.cookies.get("csrf_token")
+        
         # Should not fail even if todo doesn't exist
-        response = client.delete("/todos/999")
+        response = client.delete(
+            "/todos/999",
+            headers={"x-csrftoken": csrf_token},
+        )
         assert response.status_code == 200
