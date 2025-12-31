@@ -1,120 +1,45 @@
-"""Litestar + HTMX アプリケーションのメインファイル"""
+"""Litestar + HTMX アプリケーションのメインファイル
 
-from dataclasses import dataclass
-from typing import Annotated
+このファイルはリファクタリングされ、レイヤードアーキテクチャを採用しています:
+- models/: Pydanticモデルで型安全なデータ定義
+- repositories/: データアクセス層（現在はインメモリ、将来的にDBに変更可能）
+- services/: ビジネスロジック層
+- routes/: プレゼンテーション層（ルートハンドラ）
+"""
 
-from litestar import Litestar, Request, delete, get, post
+from litestar import Litestar
 from litestar.contrib.jinja import JinjaTemplateEngine
-from litestar.enums import RequestEncodingType
-from litestar.params import Body
-from litestar.response import Template
-from litestar.status_codes import HTTP_200_OK
+from litestar.di import Provide
 from litestar.template.config import TemplateConfig
 
+from hello_litestar_htmx.repositories.todo import InMemoryTodoRepository
+from hello_litestar_htmx.routes import pages_router, todos_router
+from hello_litestar_htmx.services.todo import TodoService
 
-@dataclass
-class Todo:
-    """Todo項目"""
-    id: int
-    title: str
-    completed: bool = False
-
-
-# グローバルなTodoストレージ（本番環境ではDBを使用）
-todos: list[Todo] = []
-next_id: int = 1
+# グローバルなリポジトリインスタンス
+# 本番環境では、アプリケーション状態やDB接続プールを使用
+_todo_repository = InMemoryTodoRepository()
 
 
-@get("/")
-async def index() -> Template:
-    """トップページ"""
-    return Template(template_name="index.html")
+def provide_todo_service() -> TodoService:
+    """Dependency provider for TodoService.
 
+    Litestarの依存性注入システムが自動的にこの関数を呼び出し、
+    TodoServiceインスタンスをルートハンドラに注入します。
 
-@get("/hello")
-async def hello(name: str = "World") -> Template:
-    """挨拶ページ - HTMXで動的に更新"""
-    return Template(
-        template_name="hello.html",
-        context={"name": name}
-    )
-
-
-@get("/todos")
-async def get_todos(request: Request) -> Template:
-    """Todoリストページ
-
-    通常アクセス: フルページ (todos.html)
-    HTMXアクセス: 部分HTML (todos_partial.html)
+    Returns:
+        TodoService instance with injected repository.
     """
-    context = {"todos": todos}
-
-    # HTMXリクエストかどうかを HX-Request ヘッダーで判定
-    is_htmx = request.headers.get("HX-Request") == "true"
-
-    if is_htmx:
-        # HTMXリクエストの場合は部分HTMLだけを返す
-        return Template(
-            template_name="todos_partial.html",
-            context=context
-        )
-
-    # 通常アクセスの場合はフルページを返す
-    return Template(
-        template_name="todos.html",
-        context=context
-    )
-
-
-@post("/todos")
-async def add_todo(
-    data: Annotated[dict, Body(media_type=RequestEncodingType.URL_ENCODED)]
-) -> Template:
-    """Todo追加"""
-    global next_id
-
-    title = data.get("title", "").strip()
-    if not title:
-        return Template(
-            template_name="todo_error.html",
-            context={"error": "タイトルを入力してください"}
-        )
-
-    todo = Todo(id=next_id, title=title)
-    todos.append(todo)
-    next_id += 1
-
-    return Template(
-        template_name="todo_item.html",
-        context={"todo": todo}
-    )
-
-
-@post("/todos/{todo_id:int}/toggle")
-async def toggle_todo(todo_id: int) -> Template:
-    """Todo完了/未完了をトグル"""
-    todo = next((t for t in todos if t.id == todo_id), None)
-    if todo:
-        todo.completed = not todo.completed
-
-    return Template(
-        template_name="todo_item.html",
-        context={"todo": todo}
-    )
-
-
-@delete("/todos/{todo_id:int}", status_code=HTTP_200_OK)
-async def delete_todo(todo_id: int) -> str:
-    """Todo削除"""
-    global todos
-    todos = [t for t in todos if t.id != todo_id]
-    return ""  # 削除時は空文字列を返す
+    return TodoService(_todo_repository)
 
 
 app = Litestar(
-    route_handlers=[index, hello, get_todos, add_todo, toggle_todo, delete_todo],
+    route_handlers=[pages_router, todos_router],
     template_config=TemplateConfig(
         directory="templates",
         engine=JinjaTemplateEngine,
     ),
+    dependencies={
+        "todo_service": Provide(provide_todo_service, sync_to_thread=False),
+    },
 )
