@@ -6,7 +6,7 @@ from litestar import Request, Router, delete, get, post
 from litestar.enums import RequestEncodingType
 from litestar.params import Body
 from litestar.response import Template
-from litestar.status_codes import HTTP_200_OK
+from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 from pydantic import ValidationError
 
 from hello_litestar_htmx.models.todo import TodoCreate
@@ -68,14 +68,16 @@ async def add_todo(
 
         return Template(
             template_name="todo_item.html",
-            context={"todo": todo}
+            context={"todo": todo},
+            status_code=HTTP_201_CREATED,
         )
     except ValidationError as e:
         # Extract first error message
         error_msg = e.errors()[0]["msg"] if e.errors() else "入力エラー"
         return Template(
             template_name="todo_error.html",
-            context={"error": error_msg}
+            context={"error": error_msg},
+            status_code=HTTP_200_OK,  # Validation error returns 200 with error message
         )
 
 

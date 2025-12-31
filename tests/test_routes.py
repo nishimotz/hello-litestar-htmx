@@ -60,7 +60,7 @@ class TestTodoRoutes:
             data={"title": "テスト用のTodo"},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert "テスト用のTodo" in response.text
         assert 'id="todo-1"' in response.text
 
@@ -82,7 +82,7 @@ class TestTodoRoutes:
             data={"title": "トグルテスト"},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-        assert create_response.status_code == 200
+        assert create_response.status_code == 201
 
         # Toggle it to completed
         toggle_response = client.post("/todos/1/toggle")
@@ -102,7 +102,7 @@ class TestTodoRoutes:
             data={"title": "削除テスト"},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-        assert create_response.status_code == 200
+        assert create_response.status_code == 201
 
         # Delete it
         delete_response = client.delete("/todos/1")
