@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Todoリスト - Litestar + HTMX{% endblock %}
+
+{% block content %}
+<h1>📝 Todoリスト</h1>
+
+<div class="container">
+    <h2>新しいTodoを追加</h2>
+    <form hx-post="/todos" hx-target="#todo-list" hx-swap="afterbegin" hx-on::after-request="this.reset()">
+        <input
+            type="text"
+            name="title"
+            placeholder="やることを入力..."
+            required
+            autofocus
+        >
+        <button type="submit">追加</button>
+    </form>
+    <div id="error-message"></div>
+</div>
+
+<div class="container">
+    <h2>Todoリスト</h2>
+    <div id="todo-list">
+        {% for todo in todos %}
+            {% include "todo_item.html" %}
+        {% else %}
+            <p style="color: #95a5a6; text-align: center;">まだTodoがありません</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="container">
+    <h2>このコードの説明</h2>
+    <ul>
+        <li><code>hx-post="/todos"</code> - フォーム送信時にPOSTリクエスト</li>
+        <li><code>hx-target="#todo-list"</code> - レスポンスを挿入する場所</li>
+        <li><code>hx-swap="afterbegin"</code> - リストの先頭に追加</li>
+        <li><code>hx-on::after-request="this.reset()"</code> - 送信後フォームをリセット</li>
+        <li><code>hx-delete</code> - 削除ボタン（各Todo項目内）</li>
+    </ul>
+    <p><a href="/">← トップページに戻る</a></p>
+</div>
+
+<style>
+    #todo-list {
+        margin-top: 20px;
+    }
+    .todo-item {
+        background: white;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s;
+    }
+    .todo-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .todo-item.completed {
+        opacity: 0.6;
+    }
+    .todo-item.completed .todo-title {
+        text-decoration: line-through;
+        color: #95a5a6;
+    }
+    .todo-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    .todo-title {
+        flex: 1;
+        font-size: 16px;
+    }
+    .delete-btn {
+        background: #e74c3c;
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+    .delete-btn:hover {
+        background: #c0392b;
+    }
+    form {
+        display: flex;
+        gap: 10px;
+    }
+    form input[type="text"] {
+        flex: 1;
+    }
+    #error-message {
+        color: #e74c3c;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}

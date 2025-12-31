@@ -1,0 +1,20 @@
+<div class="todo-item {% if todo.completed %}completed{% endif %}" id="todo-{{ todo.id }}">
+    <input
+        type="checkbox"
+        class="todo-checkbox"
+        {% if todo.completed %}checked{% endif %}
+        hx-post="/todos/{{ todo.id }}/toggle"
+        hx-target="#todo-{{ todo.id }}"
+        hx-swap="outerHTML"
+    >
+    <span class="todo-title">{{ todo.title }}</span>
+    <button
+        class="delete-btn"
+        hx-delete="/todos/{{ todo.id }}"
+        hx-target="#todo-{{ todo.id }}"
+        hx-swap="outerHTML swap:1s"
+        hx-confirm="本当に削除しますか？"
+    >
+        削除
+    </button>
+</div>
