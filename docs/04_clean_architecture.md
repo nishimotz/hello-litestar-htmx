@@ -245,12 +245,64 @@ def test_create_todo(client):
 22 passed, 1 warning in 0.30s
 ```
 
+### テストの分類 - ユニットテスト vs 統合テスト
+
+#### test_repositories.py = ユニットテスト
+
+- **テスト対象**: Repository層のみ
+- **依存**: なし（fixtureで新規インスタンス）
+- **速度**: 速い
+- **目的**: データアクセスロジックの詳細な検証
+
+```python
+def test_create_todo(repository):
+    """単一レイヤーのテスト"""
+    todo_data = TodoCreate(title="Test Todo")
+    todo = repository.create(todo_data)
+    assert todo.id == 1
+```
+
+#### test_routes.py = 統合テスト
+
+- **テスト対象**: Routes → Services → Repository → Templates の全層
+- **依存**: TestClient（実際のHTTPリクエストをシミュレート）
+- **速度**: 遅い
+- **目的**: エンドツーエンドの動作確認
+
+```python
+def test_create_todo(client):
+    """フルスタックのテスト"""
+    response = client.post("/todos", data={"title": "テスト用のTodo"}, ...)
+    assert response.status_code == 201       # HTTPステータスコード検証
+    assert "テスト用のTodo" in response.text  # テンプレートレンダリング結果検証
+    assert 'id="todo-1"' in response.text    # HTML構造検証
+```
+
+**統合テストで検証している内容**:
+
+1. HTTPリクエスト全体のフロー（ルーティング、パース、バリデーション）
+2. ビジネスロジックの実行
+3. データ保存
+4. テンプレートレンダリング
+5. HTTPレスポンス（ステータスコード、HTML出力）
+
+**HTMX特有のテスト**:
+
+```python
+def test_get_todos_htmx_request(client):
+    """HTMXリクエストの振る舞いを検証"""
+    response = client.get("/todos", headers={"HX-Request": "true"})
+    assert "<html>" not in response.text.lower()  # Partial HTMLであることを確認
+```
+
 ### テストでわかったこと
 
 1. **Fixtureパターン**でテストデータを共有
 2. **TestClient**でHTTPリクエストをシミュレート
 3. **各テストが独立**（リポジトリが毎回新規作成）
 4. **型チェックが効いている**ので実行時エラーが少ない
+5. **test_routes.py は統合テスト**であり、テンプレートレンダリング結果とHTTPステータスコードの両方を検証する
+6. **テストピラミッド**: ユニットテスト（多数、速い）→ 統合テスト（少数、遅い、包括的）
 
 ## つまづいた点
 
@@ -270,13 +322,38 @@ def test_create_todo(client):
 
 **解決**: `Router(path="")` に変更。app.pyでパスを制御。
 
-### 3. テストのステータスコード
+### 3. テストのステータスコード - RESTful ベストプラクティス
 
-POST /todos が 201 を返すと思ったが、実際は 200 だった。
+POST /todos が 201 を返すべきだが、実際は 200 だった。
 
-**原因**: Litestarのデフォルトステータスコードは明示的に指定しない限り200。
+**原因**: Litestar の Template レスポンスは、デコレーターの `status_code` パラメータを無視する。Template 自体に `status_code` を指定する必要がある。
 
-**解決**: テストを200に修正（または、ルートで`status_code=201`を明示）。
+**試行錯誤**:
+
+1. 最初の試み: `@post("/todos", status_code=HTTP_201_CREATED)` → 効果なし
+2. 正しい方法: `Template(..., status_code=HTTP_201_CREATED)` → 成功
+
+**解決**:
+
+```python
+@post("/todos")
+async def add_todo(...) -> Template:
+    try:
+        todo = todo_service.create_todo(todo_data)
+        return Template(
+            template_name="todo_item.html",
+            context={"todo": todo},
+            status_code=HTTP_201_CREATED,  # ← RESTful ベストプラクティス
+        )
+    except ValidationError as e:
+        return Template(
+            template_name="todo_error.html",
+            context={"error": error_msg},
+            status_code=HTTP_200_OK,  # ← バリデーションエラーは 200
+        )
+```
+
+**学んだこと**: RESTful API では、リソース作成成功時は **201 Created** を返すのがベストプラクティス。
 
 ## このアーキテクチャのメリット
 
