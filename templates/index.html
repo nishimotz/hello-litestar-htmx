@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Litestar + HTMX - Hello World{% endblock %}
+
+{% block content %}
+<h1>Litestar + HTMX の基本</h1>
+
+<div class="container">
+    <p>名前を入力してボタンを押すと、サーバーから挨拶が返ってきます。</p>
+    <p><strong>ポイント:</strong> ページ全体をリロードせず、結果部分だけが更新されます。</p>
+
+    <input
+        type="text"
+        id="name-input"
+        placeholder="あなたの名前"
+        value="World"
+    >
+
+    <button
+        hx-get="/hello"
+        hx-include="#name-input"
+        hx-target="#result"
+        hx-vals='js:{name: document.getElementById("name-input").value}'
+    >
+        挨拶する
+    </button>
+
+    <div id="result">
+        <!-- ここに結果が表示されます -->
+    </div>
+</div>
+
+<div class="container">
+    <h2>このコードの説明</h2>
+    <ul>
+        <li><code>hx-get="/hello"</code> - ボタンを押すと /hello に GETリクエスト</li>
+        <li><code>hx-vals</code> - 入力された名前をパラメータとして送信</li>
+        <li><code>hx-target="#result"</code> - レスポンスを #result 要素に挿入</li>
+        <li><strong>JavaScriptは最小限</strong> - HTMXの属性だけで動的UI実現</li>
+    </ul>
+</div>
+{% endblock %}
