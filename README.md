@@ -2,6 +2,19 @@
 
 Litestar と HTMX を学ぶための学習プロジェクト
 
+## ⚡ すぐに試す（TL;DR）
+
+```bash
+cd hello-litestar-htmx
+uv sync
+uv run litestar run --reload
+```
+
+ブラウザで **http://127.0.0.1:8000** を開く。
+
+- 初回は `uv sync` で仮想環境と依存関係が自動作成・インストールされます。
+- `uv run` を使うと仮想環境の有効化なしでコマンドを実行できます。
+
 ## 🎯 このプロジェクトについて
 
 このプロジェクトは、以下の技術を学ぶために作成しました：
@@ -27,65 +40,100 @@ Litestar と HTMX を学ぶための学習プロジェクト
 
 ### 必要な環境
 
-- Python 3.14
-- uv (Pythonパッケージマネージャー)
+- **Python 3.14**（`pyproject.toml` の `requires-python` に準拠）
+- **uv**（推奨）— [uv のインストール](https://docs.astral.sh/uv/getting-started/installation/)
 
 ### セットアップ
 
+**方法A: uv を使う（推奨）**
+
 ```bash
-# リポジトリをクローン
 git clone <repository-url>
 cd hello-litestar-htmx
 
-# 仮想環境を作成
-uv venv
+# 仮想環境の作成 + 依存関係のインストール（一括）
+uv sync
+```
 
-# 仮想環境を有効化
-source .venv/bin/activate  # macOS/Linux
-# または
-.venv\Scripts\activate  # Windows
+**方法B: 従来どおり venv + pip**
 
-# 依存関係をインストール
-uv pip install -e ".[dev]"
+```bash
+git clone <repository-url>
+cd hello-litestar-htmx
+
+python -m venv .venv
+source .venv/bin/activate   # macOS/Linux
+# .venv\Scripts\activate    # Windows
+
+uv pip install -e ".[dev]"  # または pip install -e ".[dev]"
 ```
 
 ### サーバーを起動
 
+**uv を使う場合（仮想環境の有効化不要）**
+
 ```bash
+uv run litestar run --reload
+```
+
+**仮想環境を有効にしている場合**
+
+```bash
+source .venv/bin/activate   # まだなら有効化
 litestar run --reload
 ```
 
-複数ワーカーやリロード環境でCSRFの整合性を保つため、`LITESTAR_CSRF_SECRET`（または `CSRF_SECRET`）を固定値で設定することを推奨します（未設定の場合は `.litestar/csrf-secret` に自動保存されます）。
+複数ワーカーやリロード環境で CSRF の整合性を保つため、`LITESTAR_CSRF_SECRET`（または `CSRF_SECRET`）を固定値で設定することを推奨します（未設定の場合は `.litestar/csrf-secret` に自動保存されます）。
 
 ```bash
 export LITESTAR_CSRF_SECRET="change-me-to-a-long-random-string"
-litestar run --reload
+uv run litestar run --reload
 ```
 
-ブラウザで http://127.0.0.1:8000 を開く
+起動後、ブラウザで **http://127.0.0.1:8000** を開く。
+
+### ⚠️ よくあるエラーと対処
+
+| エラー | 対処 |
+|--------|------|
+| `zsh: command not found: litestar` | 仮想環境が有効でないため。**`uv run litestar run --reload`** を使うか、先に `source .venv/bin/activate` してから `litestar run --reload` を実行する。 |
+| `Could not find Litestar instance or factory` | プロジェクトルートの `app.py` が Litestar のオートディスカバリで使われている。ルートで上記コマンドを実行しているか確認する。 |
+| `ModuleNotFoundError: No module named 'pydantic'` | 依存関係の再インストール。**`uv sync`** または **`uv pip install -e ".[dev]"`** を実行する（`pyproject.toml` に pydantic は含まれています）。 |
 
 ## 🧪 テストの実行
 
 ```bash
-# 全テストを実行
+# 全テストを実行（uv なら仮想環境不要）
+uv run pytest
+# または
 pytest
 
 # 詳細表示
-pytest -v
+uv run pytest -v
 
 # 特定のファイルのみ
-pytest tests/test_routes.py
+uv run pytest tests/test_routes.py
 
 # バイトコード生成を抑制して実行
-PYTHONDONTWRITEBYTECODE=1 pytest -v
+PYTHONDONTWRITEBYTECODE=1 uv run pytest -v
 ```
 
 ## 🏗️ プロジェクト構造
 
 ```
 hello-litestar-htmx/
+├── app.py                   # CLI用エントリ（litestar run がここを参照）
+├── templates/               # Jinja2テンプレート（ルート直下）
+│   ├── base.html
+│   ├── index.html
+│   ├── hello.html
+│   ├── todos.html
+│   ├── todos_partial.html
+│   ├── todo_item.html
+│   └── todo_error.html
 ├── src/
 │   └── hello_litestar_htmx/
+│       ├── app.py           # アプリ本体（Litestar インスタンス）
 │       ├── models/          # Pydanticモデル（データ定義）
 │       │   └── todo.py
 │       ├── repositories/    # データアクセス層
@@ -95,20 +143,11 @@ hello-litestar-htmx/
 │       ├── routes/          # プレゼンテーション層（ルート）
 │       │   ├── pages.py
 │       │   └── todos.py
-│       ├── templates/       # Jinja2テンプレート
-│       │   ├── base.html
-│       │   ├── index.html
-│       │   ├── hello.html
-│       │   ├── todos.html
-│       │   ├── todos_partial.html
-│       │   ├── todo_item.html
-│       │   └── todo_error.html
-│       ├── static/          # 静的ファイル（CSS）
-│       │   └── style.css
-│       └── app.py           # アプリケーションエントリーポイント
+│       └── middleware/      # ミドルウェア（CSRF など）
 ├── tests/                   # テストコード
-│   ├── test_repositories.py # ユニットテスト
-│   └── test_routes.py       # 統合テスト
+│   ├── test_repositories.py
+│   ├── test_routes.py
+│   └── test_csrf.py
 ├── docs/                    # 学習記録
 └── pyproject.toml           # プロジェクト設定
 ```
@@ -196,11 +235,11 @@ Models (データ定義層)
 
 ## ⚠️ つまづいた点と解決策
 
-### 1. Pydantic のインストール
+### 1. Pydantic の不足
 
 **問題**: `ModuleNotFoundError: No module named 'pydantic'`
 
-**解決**: `uv pip install pydantic`（Litestar[standard] に含まれていない）
+**解決**: `pyproject.toml` の `dependencies` に `pydantic>=2.0.0` を追加済み。出る場合は **`uv sync`** で依存関係を再インストールする。
 
 ### 2. Router の path 設定
 
